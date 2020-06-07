@@ -1,5 +1,6 @@
 mod utils;
 
+use js_sys;
 use ndarray::{array, Array2};
 use wasm_bindgen::prelude::*;
 use web_sys;
@@ -33,6 +34,7 @@ impl Arena {
 impl Arena {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
+        utils::set_panic_hook();
         Self { arrays: Vec::new() }
     }
 
@@ -43,6 +45,28 @@ impl Arena {
                 [4.,5.,6.],
             ]
         )
+    }
+
+    pub fn new_array_from(&mut self, js_array: js_sys::Array) -> Handle {
+        let mut new_array = array![
+            [1.,2.,3.],
+            [4.,5.,6.],
+        ];
+        for (row_idx, row) in js_array.iter().enumerate() {
+            if js_sys::Array::is_array(&row) {
+                let row = js_sys::Array::from(&row);
+                for (col_idx, value) in row.iter().enumerate() {
+                    if let Some(value) = value.as_f64() {
+                        new_array[[row_idx, col_idx]] = value as f32;
+                    } else {
+                        panic!("Value must be a float")
+                    }
+                }
+            } else {
+                panic!("Value must be an array")
+            }
+        }
+        self.push_array(new_array)
     }
 
     pub fn add_arrays(&mut self, array1: Handle, array2: Handle) -> Handle {
