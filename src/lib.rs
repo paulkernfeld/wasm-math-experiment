@@ -1,21 +1,14 @@
 mod utils;
 
-use js_sys;
 use ndarray::{array, Array2};
 use std::convert::TryInto as _;
 use wasm_bindgen::prelude::*;
-use web_sys;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-
-#[wasm_bindgen]
-extern {
-    fn alert(s: &str);
-}
 
 #[wasm_bindgen]
 pub struct Arena {
@@ -35,15 +28,13 @@ impl Arena {
 impl Arena {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        utils::set_panic_hook();
+        utils::set_panic_hook(); // TODO is there a more principled place to call this?
         Self { arrays: Vec::new() }
     }
 
     pub fn new_array_from(&mut self, js_array: js_sys::Array) -> Handle {
-        let mut new_array = array![
-            [1.,2.,3.],
-            [4.,5.,6.],
-        ];
+        // TODO support varied shapes
+        let mut new_array = array![[1., 2., 3.], [4., 5., 6.],];
         for (row_idx, row) in js_array.iter().enumerate() {
             if js_sys::Array::is_array(&row) {
                 let row = js_sys::Array::from(&row);
@@ -51,6 +42,7 @@ impl Arena {
                     if let Some(value) = value.as_f64() {
                         new_array[[row_idx, col_idx]] = value as f32;
                     } else {
+                        // TODO more informative errors
                         panic!("Value must be a float")
                     }
                 }
@@ -62,10 +54,8 @@ impl Arena {
     }
 
     pub fn new_array_float32(&mut self, js_array: js_sys::Float32Array) -> Handle {
-        let mut new_array = array![
-            [1.,2.,3.],
-            [4.,5.,6.],
-        ];
+        // TODO support varied shapes
+        let mut new_array = array![[1., 2., 3.], [4., 5., 6.],];
         assert_eq!(js_array.length(), new_array.len().try_into().unwrap());
         for row_idx in 0..new_array.nrows() {
             for col_idx in 0..new_array.ncols() {
@@ -81,13 +71,6 @@ impl Arena {
     }
 
     pub fn log_array(&self, array: Handle) {
-        use web_sys::console;
-
-        console::log_1(&format!("{}", &self.arrays[array]).into());
+        web_sys::console::log_1(&format!("{}", &self.arrays[array]).into());
     }
-}
-
-#[wasm_bindgen]
-pub fn greet(name: &str) {
-    alert(&format!("Hello, {}!", name));
 }

@@ -9,6 +9,7 @@ wasm_bindgen_test_configure!(run_in_browser);
 
 #[wasm_bindgen_test]
 fn pass() {
+    // TODO test some math
     // let arena = crate::Arena::default();
 
     // assert_eq!(a.ndim(), 2);         // get the number of dimensions of array a
