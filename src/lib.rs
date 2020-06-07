@@ -22,6 +22,13 @@ pub struct Arena {
 
 type Handle = usize;
 
+impl Arena {
+    fn push_array(&mut self, array: Array2<f32>) -> Handle {
+        self.arrays.push(array);
+        self.arrays.len() - 1
+    }
+}
+
 #[wasm_bindgen]
 impl Arena {
     #[wasm_bindgen(constructor)]
@@ -30,18 +37,16 @@ impl Arena {
     }
 
     pub fn new_array(&mut self) -> Handle {
-        self.arrays.push(
+        self.push_array(
             array![
                 [1.,2.,3.],
                 [4.,5.,6.],
             ]
-        );
-        self.arrays.len() - 1
+        )
     }
 
     pub fn add_arrays(&mut self, array1: Handle, array2: Handle) -> Handle {
-        self.arrays.push(&self.arrays[array1] + &self.arrays[array2]);
-        self.arrays.len() - 1
+        self.push_array(&self.arrays[array1] + &self.arrays[array2])
     }
 
     pub fn log_array(&self, array: Handle) {
