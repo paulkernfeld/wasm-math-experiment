@@ -2,6 +2,7 @@ mod utils;
 
 use js_sys;
 use ndarray::{array, Array2};
+use std::convert::TryInto as _;
 use wasm_bindgen::prelude::*;
 use web_sys;
 
@@ -64,6 +65,21 @@ impl Arena {
                 }
             } else {
                 panic!("Value must be an array")
+            }
+        }
+        self.push_array(new_array)
+    }
+
+    pub fn new_array_float32(&mut self, js_array: js_sys::Float32Array) -> Handle {
+        let mut new_array = array![
+            [1.,2.,3.],
+            [4.,5.,6.],
+        ];
+        assert_eq!(js_array.length(), new_array.len().try_into().unwrap());
+        for row_idx in 0..new_array.nrows() {
+            for col_idx in 0..new_array.ncols() {
+                let idx_1d = (row_idx * new_array.ncols() + col_idx).try_into().unwrap();
+                new_array[[row_idx, col_idx]] = js_array.get_index(idx_1d);
             }
         }
         self.push_array(new_array)
