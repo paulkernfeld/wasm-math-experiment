@@ -39,15 +39,6 @@ impl Arena {
         Self { arrays: Vec::new() }
     }
 
-    pub fn new_array(&mut self) -> Handle {
-        self.push_array(
-            array![
-                [1.,2.,3.],
-                [4.,5.,6.],
-            ]
-        )
-    }
-
     pub fn new_array_from(&mut self, js_array: js_sys::Array) -> Handle {
         let mut new_array = array![
             [1.,2.,3.],
