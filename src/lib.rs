@@ -2,6 +2,7 @@ mod utils;
 
 use ndarray::{array, Array2};
 use wasm_bindgen::prelude::*;
+use web_sys;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -41,6 +42,12 @@ impl Arena {
     pub fn add_arrays(&mut self, array1: Handle, array2: Handle) -> Handle {
         self.arrays.push(&self.arrays[array1] + &self.arrays[array2]);
         self.arrays.len() - 1
+    }
+
+    pub fn log_array(&self, array: Handle) {
+        use web_sys::console;
+
+        console::log_1(&format!("{}", &self.arrays[array]).into());
     }
 }
 
