@@ -3,6 +3,7 @@ mod utils;
 use ndarray::{array, Array2};
 use std::convert::TryInto as _;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast as _;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -64,6 +65,16 @@ impl Arena {
             }
         }
         self.push_array(new_array)
+    }
+
+    pub fn map_js(&mut self, array: Handle, f: wasm_bindgen::JsValue) -> Handle {
+        let f = f.dyn_ref::<js_sys::Function>().unwrap();
+        self.push_array(self.arrays[array].map(|&value| {
+            f.call1(&JsValue::NULL, &(value as f64).into())
+                .unwrap()
+                .as_f64()
+                .unwrap() as f32  // TODO blindly converting f64 to f32 could lead to issues
+        }))
     }
 
     pub fn add_arrays(&mut self, array1: Handle, array2: Handle) -> Handle {
