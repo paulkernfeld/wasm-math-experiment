@@ -12,6 +12,7 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 argmin = "0.3.1"
+autograd = "1.0.0"
 ndarray = "0.13.1"
 js-sys = "0.3.40"
 wasm-bindgen = "0.2.63"

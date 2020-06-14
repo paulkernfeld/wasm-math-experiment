@@ -12,17 +12,29 @@ let array_sum = arena.add_arrays(array1, array2);
 
 arena.log_array(array_sum);
 
+arena.autograd_test();
+
 // Benchmark
+{
+    let long_1 = arena.new_array_float32(10000000, 1, new Float32Array(10000000));
+    const t0 = performance.now();
+    let long_2 = arena.map(long_1);
+    const t1 = performance.now();
+    console.log(`Mapping with pure Wasm took ${t1 - t0} milliseconds.`);
+}
+
+{
+    let long_1_js = new Float32Array(10000000)
+    const t0 = performance.now();
+    let long_2_js = long_1_js.map(x => x + 1);
+    const t1 = performance.now();
+    console.log(`Mapping with pure JS took ${t1 - t0} milliseconds.`);
+}
+
 {
     let long_1_wasm = arena.new_array_float32(10000000, 1, new Float32Array(10000000));
     const t0 = performance.now();
     let long_2_wasm = arena.map_js(long_1_wasm, x => x + 1);
     const t1 = performance.now();
-    console.log(`Mapping with Wasm took ${t1 - t0} milliseconds.`);
+    console.log(`Mapping with Wasm calling JS took ${t1 - t0} milliseconds.`);
 }
-
-let long_1_js = new Float32Array(10000000)
-const t0 = performance.now();
-let long_2_js = long_1_js.map(x => x + 1);
-const t1 = performance.now();
-console.log(`Mapping with pure JS took ${t1 - t0} milliseconds.`);

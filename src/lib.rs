@@ -68,11 +68,27 @@ impl Arena {
         }))
     }
 
+    pub fn map(&mut self, array: Handle) -> Handle {
+        self.push_array(self.arrays[array].map(|&value| value + 1.0))
+    }
+
     pub fn add_arrays(&mut self, array1: Handle, array2: Handle) -> Handle {
         self.push_array(&self.arrays[array1] + &self.arrays[array2])
     }
 
     pub fn log_array(&self, array: Handle) {
         web_sys::console::log_1(&format!("{}", &self.arrays[array]).into());
+    }
+
+    pub fn autograd_test(&self) {
+        use autograd as ag;
+        ag::with(|g: &mut ag::Graph<_>| {
+            let a: ag::Tensor<f32> = g.ones(&[60]);
+            let b: ag::Tensor<f32> = g.ones(&[24]);
+            let c: ag::Tensor<f32> = g.reshape(a, &[3, 4, 5]);
+            let d: ag::Tensor<f32> = g.reshape(b, &[4, 3, 2]);
+            let e: ag::Tensor<f32> = g.tensordot(c, d, &[1, 0], &[0, 1]);
+            web_sys::console::log_1(&format!("{:?}", &e.eval(&[])).into());
+        });
     }
 }
