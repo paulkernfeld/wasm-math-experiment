@@ -12,11 +12,17 @@ let array_sum = arena.add_arrays(array1, array2);
 
 arena.log_array(array_sum);
 
-arena.autograd_test();
+// Tract
+// TODO benchmark tract
+let simple = arena.new_array_float32(3, 1, new Float32Array([1, 2, 3]));
+let tract_sum = arena.tract_add_3(simple);
+arena.log_array(tract_sum);
+
+let long = 1000000;
 
 // Benchmark
 {
-    let long_1 = arena.new_array_float32(10000000, 1, new Float32Array(10000000));
+    let long_1 = arena.new_array_float32(long, 1, new Float32Array(long));
     const t0 = performance.now();
     let long_2 = arena.map(long_1);
     const t1 = performance.now();
@@ -24,7 +30,7 @@ arena.autograd_test();
 }
 
 {
-    let long_1_js = new Float32Array(10000000)
+    let long_1_js = new Float32Array(long)
     const t0 = performance.now();
     let long_2_js = long_1_js.map(x => x + 1);
     const t1 = performance.now();
@@ -32,7 +38,7 @@ arena.autograd_test();
 }
 
 {
-    let long_1_wasm = arena.new_array_float32(10000000, 1, new Float32Array(10000000));
+    let long_1_wasm = arena.new_array_float32(long, 1, new Float32Array(long));
     const t0 = performance.now();
     let long_2_wasm = arena.map_js(long_1_wasm, x => x + 1);
     const t1 = performance.now();

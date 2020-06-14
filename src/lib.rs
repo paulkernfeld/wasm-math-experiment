@@ -53,7 +53,12 @@ impl Arena {
         self.push_array(new_array)
     }
 
-    pub fn new_array_float32(&mut self, n_rows: usize, n_cols: usize, js_array: js_sys::Float32Array) -> Handle {
+    pub fn new_array_float32(
+        &mut self,
+        n_rows: usize,
+        n_cols: usize,
+        js_array: js_sys::Float32Array,
+    ) -> Handle {
         // TODO infer the size of the array
         self.push_array(Array2::from_shape_vec([n_rows, n_cols], js_array.to_vec()).unwrap())
     }
@@ -64,7 +69,7 @@ impl Arena {
             f.call1(&JsValue::NULL, &(value as f64).into())
                 .unwrap()
                 .as_f64()
-                .unwrap() as f32  // TODO blindly converting f64 to f32 could lead to issues
+                .unwrap() as f32 // TODO blindly converting f64 to f32 could lead to issues
         }))
     }
 
@@ -80,15 +85,47 @@ impl Arena {
         web_sys::console::log_1(&format!("{}", &self.arrays[array]).into());
     }
 
-    pub fn autograd_test(&self) {
-        use autograd as ag;
-        ag::with(|g: &mut ag::Graph<_>| {
-            let a: ag::Tensor<f32> = g.ones(&[60]);
-            let b: ag::Tensor<f32> = g.ones(&[24]);
-            let c: ag::Tensor<f32> = g.reshape(a, &[3, 4, 5]);
-            let d: ag::Tensor<f32> = g.reshape(b, &[4, 3, 2]);
-            let e: ag::Tensor<f32> = g.tensordot(c, d, &[1, 0], &[0, 1]);
-            web_sys::console::log_1(&format!("{:?}", &e.eval(&[])).into());
-        });
+    pub fn tract_add_3(&mut self, array: Handle) -> Handle {
+        let array = &self.arrays[array];
+        use tract_core::internal::*;
+
+        // build a simple model that just add 3 to each input component
+        let mut model = TypedModel::default();
+
+        let shape = array.shape();
+        let input_fact = TypedFact::dt_shape(f32::datum_type(), shape).unwrap();
+        let input = model.add_source("input", input_fact).unwrap();
+        let three = model.add_const("three".to_string(), tensor0(3f32)).unwrap();
+        let add = model
+            .wire_node(
+                "add".to_string(),
+                tract_core::ops::math::add::bin_typed(),
+                [input, three].as_ref(),
+            )
+            .unwrap();
+
+        model.auto_outputs().unwrap();
+
+        // We build an execution plan. Default inputs and outputs are inferred from
+        // the model graph.
+        let plan = SimplePlan::new(&model).unwrap();
+
+        // run the computation.
+        // TODO we want a conversion method that never fails
+        let input = Tensor::from(array.to_owned());
+        let mut outputs = plan.run(tvec![input]).unwrap();
+
+        // take the first and only output tensor
+        let mut tensor = outputs.pop().unwrap();
+
+        // TODO don't try_unwrap
+        self.push_array(
+            Arc::try_unwrap(tensor)
+                .unwrap()
+                .into_array()
+                .unwrap()
+                .into_dimensionality()
+                .unwrap(),
+        )
     }
 }
