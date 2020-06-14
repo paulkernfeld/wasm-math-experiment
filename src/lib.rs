@@ -1,7 +1,6 @@
 mod utils;
 
 use ndarray::{array, Array2};
-use std::convert::TryInto as _;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast as _;
 
@@ -56,15 +55,7 @@ impl Arena {
 
     pub fn new_array_float32(&mut self, n_rows: usize, n_cols: usize, js_array: js_sys::Float32Array) -> Handle {
         // TODO infer the size of the array
-        let mut new_array = Array2::zeros([n_rows, n_cols]);
-        assert_eq!(js_array.length(), new_array.len().try_into().unwrap());
-        for row_idx in 0..new_array.nrows() {
-            for col_idx in 0..new_array.ncols() {
-                let idx_1d = (row_idx * new_array.ncols() + col_idx).try_into().unwrap();
-                new_array[[row_idx, col_idx]] = js_array.get_index(idx_1d);
-            }
-        }
-        self.push_array(new_array)
+        self.push_array(Array2::from_shape_vec([n_rows, n_cols], js_array.to_vec()).unwrap())
     }
 
     pub fn map_js(&mut self, array: Handle, f: wasm_bindgen::JsValue) -> Handle {
