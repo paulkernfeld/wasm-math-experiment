@@ -54,9 +54,9 @@ impl Arena {
         self.push_array(new_array)
     }
 
-    pub fn new_array_float32(&mut self, js_array: js_sys::Float32Array) -> Handle {
-        // TODO support varied shapes
-        let mut new_array = array![[1., 2., 3.], [4., 5., 6.],];
+    pub fn new_array_float32(&mut self, n_rows: usize, n_cols: usize, js_array: js_sys::Float32Array) -> Handle {
+        // TODO infer the size of the array
+        let mut new_array = Array2::zeros([n_rows, n_cols]);
         assert_eq!(js_array.length(), new_array.len().try_into().unwrap());
         for row_idx in 0..new_array.nrows() {
             for col_idx in 0..new_array.ncols() {
