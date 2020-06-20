@@ -96,7 +96,7 @@ impl Arena {
         let input_fact = TypedFact::dt_shape(f32::datum_type(), shape).unwrap();
         let input = model.add_source("input", input_fact).unwrap();
         let three = model.add_const("three".to_string(), tensor0(3f32)).unwrap();
-        let add = model
+        let _add = model
             .wire_node(
                 "add".to_string(),
                 tract_core::ops::math::add::bin_typed(),
@@ -116,7 +116,7 @@ impl Arena {
         let mut outputs = plan.run(tvec![input]).unwrap();
 
         // take the first and only output tensor
-        let mut tensor = outputs.pop().unwrap();
+        let tensor = outputs.pop().unwrap();
 
         // TODO don't try_unwrap
         self.push_array(
