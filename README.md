@@ -4,6 +4,7 @@ This project is built with [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pa
 
 # TODO
 
+- File or watch issue for uninitialized types
 - Benchmark `tract` computation
 - Read in a CSV file
 - Generate some plots
