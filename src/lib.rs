@@ -57,6 +57,10 @@ impl Arena {
         self.push_array(new_array)
     }
 
+    pub fn new_array_from_json(&mut self, json: &str) -> Result<Handle, JsValue> {
+        Ok(self.push_array(serde_json::from_str(json).map_err(|e| e.to_string())?))
+    }
+
     pub fn new_array_float32(
         &mut self,
         n_rows: usize,

@@ -5,8 +5,10 @@ This project is built with [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pa
 # TODO
 
 - File or watch issue for uninitialized types
-- Benchmark `tract` computation
+- Can we separate allocation from computation?
 - Read in a CSV file
+- Read in a JSON file
+- Return errors to JS
 - Generate some plots
 - Add boolean vectors with `bitvec`
 - Set up unit testing with wasm-pack
