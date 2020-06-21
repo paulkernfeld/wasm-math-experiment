@@ -12,12 +12,6 @@ let array_sum = arena.add_arrays(array1, array2);
 
 arena.log_array(array_sum);
 
-// Tract
-// TODO benchmark tract
-let simple = arena.new_array_float32(3, 1, new Float32Array([1, 2, 3]));
-let tract_sum = arena.tract_add_3(simple);
-arena.log_array(tract_sum);
-
 let long = 1000000;
 
 // Benchmark
@@ -35,6 +29,14 @@ let long = 1000000;
     let long_2_js = long_1_js.map(x => x + 1);
     const t1 = performance.now();
     console.log(`Mapping with pure JS took ${t1 - t0} milliseconds.`);
+}
+
+{
+    let simple = arena.new_array_float32(long, 1, new Float32Array(long));
+    const t0 = performance.now();
+    let tract_sum = arena.tract_add_3(simple);
+    const t1 = performance.now();
+    console.log(`Mapping with tract took ${t1 - t0} milliseconds.`);
 }
 
 {

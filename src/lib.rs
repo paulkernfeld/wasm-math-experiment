@@ -89,6 +89,7 @@ impl Arena {
         let array = &self.arrays[array];
         use tract_core::internal::*;
 
+        // TODO build computation graph in advance for performance
         // build a simple model that just add 3 to each input component
         let mut model = TypedModel::default();
 
