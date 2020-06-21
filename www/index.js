@@ -32,6 +32,14 @@ let long = 1000000;
 }
 
 {
+    let long_1 = arena.new_array_float32(long, 1, new Float32Array(long));
+    const t0 = performance.now();
+    let long_2 = arena.map_batch(long_1, array => array.map(x => x + 1));
+    const t1 = performance.now();
+    console.log(`Mapping with batched JS took ${t1 - t0} milliseconds.`);
+}
+
+{
     let simple = arena.new_array_float32(long, 1, new Float32Array(long));
     const t0 = performance.now();
     let tract_sum = arena.tract_add_3(simple);

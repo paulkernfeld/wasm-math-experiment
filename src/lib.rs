@@ -10,6 +10,10 @@ use wasm_bindgen::JsCast as _;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+fn array_from_js(n_rows: usize, n_cols: usize, js_array: &js_sys::Float32Array) -> Array2<f32> {
+    Array2::from_shape_vec([n_rows, n_cols], js_array.to_vec()).unwrap()
+}
+
 #[wasm_bindgen]
 pub struct Arena {
     arrays: Vec<Array2<f32>>,
@@ -60,7 +64,7 @@ impl Arena {
         js_array: js_sys::Float32Array,
     ) -> Handle {
         // TODO infer the size of the array
-        self.push_array(Array2::from_shape_vec([n_rows, n_cols], js_array.to_vec()).unwrap())
+        self.push_array(array_from_js(n_rows, n_cols, &js_array))
     }
 
     pub fn map_js(&mut self, array: Handle, f: wasm_bindgen::JsValue) -> Handle {
@@ -73,6 +77,17 @@ impl Arena {
         }))
     }
 
+    pub fn map_batch(&mut self, array: Handle, f: wasm_bindgen::JsValue) -> Handle {
+        let f = f.dyn_ref::<js_sys::Function>().unwrap();
+        let array_js = self.get_array_float32(array);
+        let array = &self.arrays[array];
+        let map_result = f.call1(&JsValue::NULL, &array_js).unwrap();
+        let array_mapped_js = map_result.dyn_into::<js_sys::Float32Array>().unwrap();
+        let n_rows = array.nrows();
+        let n_cols = array.ncols();
+        self.push_array(array_from_js(n_rows, n_cols, &array_mapped_js))
+    }
+
     pub fn map(&mut self, array: Handle) -> Handle {
         self.push_array(self.arrays[array].map(|&value| value + 1.0))
     }
@@ -83,6 +98,14 @@ impl Arena {
 
     pub fn log_array(&self, array: Handle) {
         web_sys::console::log_1(&format!("{}", &self.arrays[array]).into());
+    }
+
+    pub fn get_array_float32(&self, array: Handle) -> js_sys::Float32Array {
+        // TODO use https://docs.rs/js-sys/0.3.40/js_sys/struct.Float32Array.html#method.view
+        // ...but how do we make it safe?
+        // TODO does &mut self let us make this safe?
+        let array = &self.arrays[array];
+        array.as_slice().unwrap().into()
     }
 
     pub fn tract_add_3(&mut self, array: Handle) -> Handle {
