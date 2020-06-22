@@ -1,4 +1,5 @@
 import * as wasm from "wasm-math-experiment";
+import txt from "./FoodData_Central_csv_2019-04-02/food.csv";
 
 let arena = new wasm.Arena();
 
