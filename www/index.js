@@ -14,7 +14,7 @@ arena.log_array(array_sum);
 
 let long = 1000000;
 
-// Read JSON
+// Read JSON. TODO: would users like this ndarray format?
 let array_json = arena.new_array_from_json('{"v":1,"dim":[2,3],"data":[3,1,2.2,3.1,4,7]}');
 arena.log_array(array_json);
 
