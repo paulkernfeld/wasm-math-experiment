@@ -17,14 +17,22 @@ fn array_from_js(n_rows: usize, n_cols: usize, js_array: &js_sys::Float32Array) 
 #[wasm_bindgen]
 pub struct Arena {
     arrays: Vec<Array2<f32>>,
+    serieses_string: Vec<Vec<String>>, // TODO intern string
 }
 
+// TODO can we make these typesafe in Rust, or even into JS? What bugs would this prevent?
 type Handle = usize;
+type SeriesStringHandle = usize;
 
 impl Arena {
     fn push_array(&mut self, array: Array2<f32>) -> Handle {
         self.arrays.push(array);
         self.arrays.len() - 1
+    }
+
+    fn push_series_string(&mut self, series_string: Vec<String>) -> SeriesStringHandle {
+        self.serieses_string.push(series_string);
+        self.serieses_string.len() - 1
     }
 }
 
@@ -33,7 +41,12 @@ impl Arena {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         utils::set_panic_hook(); // TODO is there a more principled place to call this?
-        Self { arrays: Vec::new() }
+        Self { arrays: Vec::new(), serieses_string: Vec::new() }
+    }
+
+    pub fn new_series_string(&mut self, js_array: js_sys::Array) -> SeriesStringHandle {
+        // TODO maybe JsString::try_from would be faster
+        self.push_series_string(js_array.iter().map(|s| s.as_string().unwrap()).collect())
     }
 
     pub fn new_array_from(&mut self, js_array: js_sys::Array) -> Handle {
