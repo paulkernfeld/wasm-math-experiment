@@ -4,7 +4,6 @@ This project is built with [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pa
 
 - Current goal: visualize a data set
 - Current subgoal: load a CSV file
-- Current subsubgoal: implement String series
 
 # TODO
 

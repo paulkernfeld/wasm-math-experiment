@@ -1,9 +1,10 @@
 mod utils;
 
 use ndarray::{array, Array2};
+use std::collections::HashMap;
+use std::convert::TryInto as _;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast as _;
-use std::collections::HashMap;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -21,7 +22,8 @@ pub struct Arena {
     serieses_string: Vec<Vec<String>>, // TODO intern string
 }
 
-// TODO can we make these typesafe in Rust, or even into JS? What bugs would this prevent?
+// TODO can we make these typesafe in Rust, or even into JS? What bugs would this prevent? By
+// handing JS objects back, we could let users use method calls rather than always `arena.`.
 type Handle = usize;
 type SeriesStringHandle = usize;
 
@@ -42,7 +44,10 @@ impl Arena {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         utils::set_panic_hook(); // TODO is there a more principled place to call this?
-        Self { arrays: Vec::new(), serieses_string: Vec::new() }
+        Self {
+            arrays: Vec::new(),
+            serieses_string: Vec::new(),
+        }
     }
 
     // pub fn read_csv(&mut self, csv_text: &str) -> Frame {}
@@ -50,6 +55,21 @@ impl Arena {
     pub fn new_series_string(&mut self, js_array: js_sys::Array) -> SeriesStringHandle {
         // TODO maybe JsString::try_from would be faster
         self.push_series_string(js_array.iter().map(|s| s.as_string().unwrap()).collect())
+    }
+
+    pub fn new_frame(&mut self, js_object: js_sys::Object) -> Frame {
+        Frame {
+            serieses: js_sys::Object::entries(&js_object)
+                .iter()
+                .map(|entry| {
+                    let entry = entry.dyn_into::<js_sys::Array>().unwrap();
+                    (
+                        entry.get(0).as_string().unwrap(),
+                        self.new_series_string(entry.get(1).try_into().unwrap()),
+                    )
+                })
+                .collect(),
+        }
     }
 
     pub fn new_array_from(&mut self, js_array: js_sys::Array) -> Handle {
@@ -174,30 +194,14 @@ impl Arena {
     }
 }
 
+#[wasm_bindgen]
 pub struct Frame {
     serieses: HashMap<String, SeriesStringHandle>,
 }
 
+#[wasm_bindgen]
 impl Frame {
-    // TODO maybe we want to just do this from a JS object, maps are less pretty to create
-    // pub fn new(js_object: js_sys::Map) -> Self {
-    //     Self {
-    //         serieses: js_object.entries().into_iter().map(|entry| {
-    //             let array = entry.unwrap().dyn_into::<js_sys::Array>().unwrap();
-    //             let key = array.get(0);
-    //             let value = array.get(1);
-    //             ()
-    //         }).collect()
-    //     }
-    // }
-    // pub fn new(js_object: js_sys::Object) -> Self {
-    //     Self {
-    //         serieses: Object::entries(js_object).into_iter().map(|entry| {
-    //             let array = entry.unwrap().dyn_into::<js_sys::Array>().unwrap();
-    //             let key = array.get(0);
-    //             let value = array.get(1);
-    //             ()
-    //         }).collect()
-    //     }
-    // }
+    pub fn s(&self, series_name: &str) -> SeriesStringHandle {
+        self.serieses[series_name]
+    }
 }

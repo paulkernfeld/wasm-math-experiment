@@ -15,7 +15,13 @@ TinyTest.run({
   "create string series": function() {
       let strings = arena.new_series_string(["a", "b", "c"]);
       // TODO make an assertion
-  }
+  },
+
+  "create string frame": function() {
+      let frame = arena.new_frame({"letters": ["a", "b", "c"]});
+      TinyTest.assertEquals(frame.s("letters"), frame.s("letters"));
+      // TODO assert on value equality (above is reference equality)
+  },
 });
 
 
