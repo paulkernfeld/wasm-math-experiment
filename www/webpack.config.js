@@ -1,5 +1,6 @@
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const path = require('path');
+const TinyTest = require('./vendor/tinytest.js');
 
 module.exports = {
   entry: "./bootstrap.js",
@@ -17,6 +18,13 @@ module.exports = {
         test: /\.csv$/i,
         use: 'raw-loader',
       },
+      {
+        test: require.resolve('./vendor/tinytest.js'),
+        loader: 'exports-loader',
+        options: {
+          exports: 'default TinyTest',
+        },
+      },
     ],
-  }
+  },
 };

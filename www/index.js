@@ -1,14 +1,26 @@
 import * as wasm from "wasm-math-experiment";
 import txt from "./FoodData_Central_csv_2019-04-02/food.csv";
+import TinyTest from "./vendor/tinytest.js";
 
 let arena = new wasm.Arena();
 
+TinyTest.run({
+  'read JSON': function() {
+      // Read JSON. TODO: would users like this ndarray format?
+      let array_json = arena.new_array_from_json('{"v":1,"dim":[2,3],"data":[3,1,2.2,3.1,4,7]}');
+      arena.log_array(array_json);
+      // TODO make an assertion
+  },
+
+  "create string series": function() {
+      let strings = arena.new_series_string(["a", "b", "c"]);
+      // TODO make an assertion
+  }
+});
+
+
 // TODO add CSV reading
 // let foods = arena.read_csv(txt);
-
-//
-let strings = arena.new_series_string(["a", "b", "c"]);
-
 
 // Easiest example
 let array1 = arena.new_array_from([[1, 1, 1], [2, 2, 2]]);
@@ -17,14 +29,9 @@ arena.log_array(array2);
 let array3 = arena.new_array_float32(3, 2, new Float32Array([1, 2, 3, 1, 2, 3])); // In row-major order
 
 let array_sum = arena.add_arrays(array1, array2);
-
 arena.log_array(array_sum);
 
 let long = 1000000;
-
-// Read JSON. TODO: would users like this ndarray format?
-let array_json = arena.new_array_from_json('{"v":1,"dim":[2,3],"data":[3,1,2.2,3.1,4,7]}');
-arena.log_array(array_json);
 
 // Benchmark
 {
