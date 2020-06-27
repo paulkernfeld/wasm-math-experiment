@@ -9,6 +9,7 @@ let arena = new wasm.Arena();
 //
 let strings = arena.new_series_string(["a", "b", "c"]);
 
+
 // Easiest example
 let array1 = arena.new_array_from([[1, 1, 1], [2, 2, 2]]);
 let array2 = arena.map_js(array1, x => x + 1);

@@ -3,6 +3,7 @@ mod utils;
 use ndarray::{array, Array2};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast as _;
+use std::collections::HashMap;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -43,6 +44,8 @@ impl Arena {
         utils::set_panic_hook(); // TODO is there a more principled place to call this?
         Self { arrays: Vec::new(), serieses_string: Vec::new() }
     }
+
+    // pub fn read_csv(&mut self, csv_text: &str) -> Frame {}
 
     pub fn new_series_string(&mut self, js_array: js_sys::Array) -> SeriesStringHandle {
         // TODO maybe JsString::try_from would be faster
@@ -169,4 +172,32 @@ impl Arena {
                 .unwrap(),
         )
     }
+}
+
+pub struct Frame {
+    serieses: HashMap<String, SeriesStringHandle>,
+}
+
+impl Frame {
+    // TODO maybe we want to just do this from a JS object, maps are less pretty to create
+    // pub fn new(js_object: js_sys::Map) -> Self {
+    //     Self {
+    //         serieses: js_object.entries().into_iter().map(|entry| {
+    //             let array = entry.unwrap().dyn_into::<js_sys::Array>().unwrap();
+    //             let key = array.get(0);
+    //             let value = array.get(1);
+    //             ()
+    //         }).collect()
+    //     }
+    // }
+    // pub fn new(js_object: js_sys::Object) -> Self {
+    //     Self {
+    //         serieses: Object::entries(js_object).into_iter().map(|entry| {
+    //             let array = entry.unwrap().dyn_into::<js_sys::Array>().unwrap();
+    //             let key = array.get(0);
+    //             let value = array.get(1);
+    //             ()
+    //         }).collect()
+    //     }
+    // }
 }

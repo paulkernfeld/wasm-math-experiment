@@ -1,6 +1,10 @@
-This contains some experiments on what browser-first WebAssembly data frames might look like. See [`www/index.js`](www/index.js) for sample usage. The current goal is to load a simple data set and visualize some aspect of it.
+This contains some experiments on what browser-first WebAssembly data frames might look like. See [`www/index.js`](www/index.js) for sample usage.
 
-This project is built with [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/).
+This project is built with [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/). 
+
+- Current goal: visualize a data set
+- Current subgoal: load a CSV file
+- Current subsubgoal: implement String series
 
 # TODO
 
