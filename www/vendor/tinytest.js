@@ -39,12 +39,12 @@
  */
 const TinyTest = {
 
-    run: function(tests) {
+    run: async function(tests) {
         let failures = 0;
         for (let testName in tests) {
             let testAction = tests[testName];
             try {
-                testAction();
+                await testAction();
                 console.log('Test:', testName, 'OK');
             } catch (e) {
                 failures++;
