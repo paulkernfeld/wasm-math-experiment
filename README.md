@@ -3,10 +3,11 @@ This contains some experiments on what browser-first WebAssembly data frames mig
 This project is built with [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/). 
 
 - Current goal: visualize a data set
-- Current subgoal: load a CSV file
+- Current subgoal: add numerical series
 
 # TODO
 
+- wasm-pack watch functionality
 - File or watch issue for uninitialized types
 - Can we separate allocation from computation?
 - Read in a CSV file

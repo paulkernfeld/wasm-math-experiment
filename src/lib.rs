@@ -1,10 +1,15 @@
 mod utils;
 
+use csv::Reader;
+use js_sys::{ArrayBuffer, Promise, Uint8Array};
 use ndarray::{array, Array2};
 use std::collections::HashMap;
 use std::convert::TryInto as _;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast as _;
+use wasm_bindgen_futures::JsFuture;
+use web_sys::{Response};
+use std::io::Cursor;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -12,10 +17,66 @@ use wasm_bindgen::JsCast as _;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+// TODO we want to not take ownership of the arena
+#[wasm_bindgen]
+pub async fn fetch_csv(mut arena: Arena, fetch: Promise) -> Result<FrameAndArenaOhNoThisIsBad, JsValue> {
+    let array_buffer = JsFuture::from(
+        JsFuture::from(fetch)
+            .await
+            .unwrap()
+            .dyn_into::<Response>()?
+            .array_buffer()?,
+    ).await?
+    .dyn_into::<ArrayBuffer>()?;
+    let vec = Uint8Array::new(&array_buffer).to_vec();
+    let mut reader = Reader::from_reader(Cursor::new(vec));
+    let mut rows = reader.records();
+    let mut new_serieses: Vec<Vec<String>> = Vec::new();
+    for field in rows.next().unwrap().unwrap().iter() {
+        new_serieses.push(vec![field.to_string()]);
+    }
+
+    for result in rows {
+        // The iterator yields Result<StringRecord, Error>, so we check the
+        // error here..
+        let record = result.unwrap(); // TODO handle bad csv data
+        for (i, field) in record.iter().enumerate() {
+            new_serieses[i].push(field.to_string());
+        }
+    }
+    Ok(FrameAndArenaOhNoThisIsBad {
+        frame: Some(Frame {
+            serieses: new_serieses.into_iter().enumerate().map(|(i, series)| {
+                let handle = arena.push_series_string(series);
+                (format!("series_{}", i), handle)
+            }).collect(),
+        }),
+        arena: Some(arena)
+    })
+}
+
 fn array_from_js(n_rows: usize, n_cols: usize, js_array: &js_sys::Float32Array) -> Array2<f32> {
     Array2::from_shape_vec([n_rows, n_cols], js_array.to_vec()).unwrap()
 }
 
+#[wasm_bindgen]
+pub struct FrameAndArenaOhNoThisIsBad {
+    frame: Option<Frame>,
+    arena: Option<Arena>,
+}
+
+#[wasm_bindgen]
+impl FrameAndArenaOhNoThisIsBad {
+    pub fn take_frame(&mut self) -> Option<Frame> {
+        self.frame.take()
+    }
+
+    pub fn take_arena(&mut self) -> Option<Arena> {
+        self.arena.take()
+    }
+}
+
+// TODO users shouldn't need to deal with this (unless they want to)
 #[wasm_bindgen]
 pub struct Arena {
     arrays: Vec<Array2<f32>>,
@@ -140,6 +201,10 @@ impl Arena {
         web_sys::console::log_1(&format!("{}", &self.arrays[array]).into());
     }
 
+    pub fn log_series(&self, series: Handle) {
+        web_sys::console::log_1(&format!("{:?}", &self.serieses_string[series]).into());
+    }
+
     pub fn get_array_float32(&self, array: Handle) -> js_sys::Float32Array {
         // TODO use https://docs.rs/js-sys/0.3.40/js_sys/struct.Float32Array.html#method.view
         // ...but how do we make it safe?
@@ -203,5 +268,13 @@ pub struct Frame {
 impl Frame {
     pub fn s(&self, series_name: &str) -> SeriesStringHandle {
         self.serieses[series_name]
+    }
+
+    pub fn log(&self, arena: &Arena) {
+        // TODO ideally these should come out in order
+        for (series_name, &series_handle) in self.serieses.iter() {
+            web_sys::console::log_1(&series_name.into());
+            arena.log_series(series_handle);
+        }
     }
 }

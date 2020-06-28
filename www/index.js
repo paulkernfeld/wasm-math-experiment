@@ -22,6 +22,14 @@ TinyTest.run({
       TinyTest.assertEquals(frame.s("letters"), frame.s("letters"));
       // TODO assert on value equality (above is reference equality)
   },
+
+  "fetch CSV file": async function() {
+    // TODO this test depends on external data, which could make it flaky
+    let frameAndArena = await wasm.fetch_csv(arena, fetch("https://data.cityofnewyork.us/api/views/zt9s-n5aj/rows.csv?accessType=DOWNLOAD"));
+    // TODO hrrrnnnnnnnghhhh
+    frameAndArena.take_frame().log(frameAndArena.take_arena());
+    // TODO make some assertions
+  },
 });
 
 
