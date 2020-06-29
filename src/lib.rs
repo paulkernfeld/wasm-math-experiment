@@ -11,6 +11,11 @@ use wasm_bindgen::JsCast as _;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::Response;
 
+#[wasm_bindgen(start)]
+pub fn start() {
+    utils::set_panic_hook();
+}
+
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
 #[cfg(feature = "wee_alloc")]
@@ -77,7 +82,6 @@ impl Arena {
 impl Arena {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        utils::set_panic_hook(); // TODO is there a more principled place to call this?
         Self { arrays: Vec::new() }
     }
 
