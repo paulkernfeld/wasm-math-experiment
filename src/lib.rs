@@ -1,15 +1,15 @@
 mod utils;
 
 use csv::Reader;
-use js_sys::{ArrayBuffer, Promise, Uint8Array};
+use js_sys::{Array, ArrayBuffer, Promise, Uint8Array};
 use ndarray::{array, Array2};
 use std::collections::HashMap;
 use std::convert::TryInto as _;
+use std::io::Cursor;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Response};
-use std::io::Cursor;
+use web_sys::Response;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -17,16 +17,15 @@ use std::io::Cursor;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-// TODO we want to not take ownership of the arena
 #[wasm_bindgen]
-pub async fn fetch_csv(mut arena: Arena, fetch: Promise) -> Result<FrameAndArenaOhNoThisIsBad, JsValue> {
+pub async fn fetch_csv(fetch: Promise) -> Result<Frame, JsValue> {
     let array_buffer = JsFuture::from(
         JsFuture::from(fetch)
-            .await
-            .unwrap()
+            .await?
             .dyn_into::<Response>()?
             .array_buffer()?,
-    ).await?
+    )
+    .await?
     .dyn_into::<ArrayBuffer>()?;
     let vec = Uint8Array::new(&array_buffer).to_vec();
     let mut reader = Reader::from_reader(Cursor::new(vec));
@@ -44,14 +43,12 @@ pub async fn fetch_csv(mut arena: Arena, fetch: Promise) -> Result<FrameAndArena
             new_serieses[i].push(field.to_string());
         }
     }
-    Ok(FrameAndArenaOhNoThisIsBad {
-        frame: Some(Frame {
-            serieses: new_serieses.into_iter().enumerate().map(|(i, series)| {
-                let handle = arena.push_series_string(series);
-                (format!("series_{}", i), handle)
-            }).collect(),
-        }),
-        arena: Some(arena)
+    Ok(Frame {
+        serieses: new_serieses
+            .into_iter()
+            .enumerate()
+            .map(|(i, series)| (format!("series_{}", i), SeriesString { inner: series }))
+            .collect(),
     })
 }
 
@@ -59,44 +56,20 @@ fn array_from_js(n_rows: usize, n_cols: usize, js_array: &js_sys::Float32Array) 
     Array2::from_shape_vec([n_rows, n_cols], js_array.to_vec()).unwrap()
 }
 
-#[wasm_bindgen]
-pub struct FrameAndArenaOhNoThisIsBad {
-    frame: Option<Frame>,
-    arena: Option<Arena>,
-}
-
-#[wasm_bindgen]
-impl FrameAndArenaOhNoThisIsBad {
-    pub fn take_frame(&mut self) -> Option<Frame> {
-        self.frame.take()
-    }
-
-    pub fn take_arena(&mut self) -> Option<Arena> {
-        self.arena.take()
-    }
-}
-
 // TODO users shouldn't need to deal with this (unless they want to)
 #[wasm_bindgen]
 pub struct Arena {
     arrays: Vec<Array2<f32>>,
-    serieses_string: Vec<Vec<String>>, // TODO intern string
 }
 
 // TODO can we make these typesafe in Rust, or even into JS? What bugs would this prevent? By
 // handing JS objects back, we could let users use method calls rather than always `arena.`.
 type Handle = usize;
-type SeriesStringHandle = usize;
 
 impl Arena {
     fn push_array(&mut self, array: Array2<f32>) -> Handle {
         self.arrays.push(array);
         self.arrays.len() - 1
-    }
-
-    fn push_series_string(&mut self, series_string: Vec<String>) -> SeriesStringHandle {
-        self.serieses_string.push(series_string);
-        self.serieses_string.len() - 1
     }
 }
 
@@ -105,32 +78,7 @@ impl Arena {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         utils::set_panic_hook(); // TODO is there a more principled place to call this?
-        Self {
-            arrays: Vec::new(),
-            serieses_string: Vec::new(),
-        }
-    }
-
-    // pub fn read_csv(&mut self, csv_text: &str) -> Frame {}
-
-    pub fn new_series_string(&mut self, js_array: js_sys::Array) -> SeriesStringHandle {
-        // TODO maybe JsString::try_from would be faster
-        self.push_series_string(js_array.iter().map(|s| s.as_string().unwrap()).collect())
-    }
-
-    pub fn new_frame(&mut self, js_object: js_sys::Object) -> Frame {
-        Frame {
-            serieses: js_sys::Object::entries(&js_object)
-                .iter()
-                .map(|entry| {
-                    let entry = entry.dyn_into::<js_sys::Array>().unwrap();
-                    (
-                        entry.get(0).as_string().unwrap(),
-                        self.new_series_string(entry.get(1).try_into().unwrap()),
-                    )
-                })
-                .collect(),
-        }
+        Self { arrays: Vec::new() }
     }
 
     pub fn new_array_from(&mut self, js_array: js_sys::Array) -> Handle {
@@ -201,10 +149,6 @@ impl Arena {
         web_sys::console::log_1(&format!("{}", &self.arrays[array]).into());
     }
 
-    pub fn log_series(&self, series: Handle) {
-        web_sys::console::log_1(&format!("{:?}", &self.serieses_string[series]).into());
-    }
-
     pub fn get_array_float32(&self, array: Handle) -> js_sys::Float32Array {
         // TODO use https://docs.rs/js-sys/0.3.40/js_sys/struct.Float32Array.html#method.view
         // ...but how do we make it safe?
@@ -260,21 +204,50 @@ impl Arena {
 }
 
 #[wasm_bindgen]
+pub struct SeriesString {
+    inner: Vec<String>,
+}
+
+#[wasm_bindgen]
+impl SeriesString {
+    pub fn from_js_array(js_array: Array) -> Self {
+        SeriesString {
+            inner: js_array.iter().map(|s| s.as_string().unwrap()).collect(),
+        }
+    }
+
+    pub fn log(&self) {
+        web_sys::console::log_1(&format!("{:?}", &self.inner).into());
+    }
+}
+
+#[wasm_bindgen]
 pub struct Frame {
-    serieses: HashMap<String, SeriesStringHandle>,
+    serieses: HashMap<String, SeriesString>,
 }
 
 #[wasm_bindgen]
 impl Frame {
-    pub fn s(&self, series_name: &str) -> SeriesStringHandle {
-        self.serieses[series_name]
+    pub fn new(&mut self, js_object: js_sys::Object) -> Self {
+        Self {
+            serieses: js_sys::Object::entries(&js_object)
+                .iter()
+                .map(|entry| {
+                    let entry = entry.dyn_into::<js_sys::Array>().unwrap();
+                    (
+                        entry.get(0).as_string().unwrap(),
+                        SeriesString::from_js_array(entry.get(1).try_into().unwrap()),
+                    )
+                })
+                .collect(),
+        }
     }
 
-    pub fn log(&self, arena: &Arena) {
-        // TODO ideally these should come out in order
-        for (series_name, &series_handle) in self.serieses.iter() {
+    pub fn log(&self) {
+        // TODO ideally these should be logged in order
+        for (series_name, ref series) in self.serieses.iter() {
             web_sys::console::log_1(&series_name.into());
-            arena.log_series(series_handle);
+            series.log();
         }
     }
 }

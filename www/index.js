@@ -1,4 +1,5 @@
 import * as wasm from "wasm-math-experiment";
+import {Frame, SeriesString} from "wasm-math-experiment";
 import txt from "./FoodData_Central_csv_2019-04-02/food.csv";
 import TinyTest from "./vendor/tinytest.js";
 
@@ -13,28 +14,22 @@ TinyTest.run({
   },
 
   "create string series": function() {
-      let strings = arena.new_series_string(["a", "b", "c"]);
+      let strings = new SeriesString(["a", "b", "c"]);
       // TODO make an assertion
   },
 
   "create string frame": function() {
-      let frame = arena.new_frame({"letters": ["a", "b", "c"]});
-      TinyTest.assertEquals(frame.s("letters"), frame.s("letters"));
-      // TODO assert on value equality (above is reference equality)
+      let frame = new Frame({"letters": ["a", "b", "c"]});
+      // TODO make an assertion
   },
 
   "fetch CSV file": async function() {
     // TODO this test depends on external data, which could make it flaky
-    let frameAndArena = await wasm.fetch_csv(arena, fetch("https://data.cityofnewyork.us/api/views/zt9s-n5aj/rows.csv?accessType=DOWNLOAD"));
-    // TODO hrrrnnnnnnnghhhh
-    frameAndArena.take_frame().log(frameAndArena.take_arena());
+    let frame = await wasm.fetch_csv(fetch("https://data.cityofnewyork.us/api/views/zt9s-n5aj/rows.csv?accessType=DOWNLOAD"));
+    frame.log();
     // TODO make some assertions
   },
 });
-
-
-// TODO add CSV reading
-// let foods = arena.read_csv(txt);
 
 // Easiest example
 let array1 = arena.new_array_from([[1, 1, 1], [2, 2, 2]]);
