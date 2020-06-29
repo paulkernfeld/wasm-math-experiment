@@ -8,9 +8,7 @@ This project is built with [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pa
 # TODO
 
 - wasm-pack watch functionality
-- File or watch issue for uninitialized types
 - Can we separate allocation from computation?
-- Read in a CSV file
 - Return errors to JS
 - Generate some plots
 - Fix dumb JS vulnerabilities
