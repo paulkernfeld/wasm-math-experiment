@@ -2,7 +2,7 @@ mod utils;
 
 use csv::Reader;
 use js_sys::{Array, ArrayBuffer, Promise, Uint8Array};
-use ndarray::{array, Array2};
+use ndarray::{array, Array1, Array2};
 use std::collections::HashMap;
 use std::convert::TryInto as _;
 use std::io::Cursor;
@@ -52,7 +52,7 @@ pub async fn fetch_csv(fetch: Promise) -> Result<Frame, JsValue> {
         serieses: new_serieses
             .into_iter()
             .enumerate()
-            .map(|(i, series)| (format!("series_{}", i), SeriesString { inner: series }))
+            .map(|(i, series)| (format!("series_{}", i), Series::from(SeriesString { inner: series })))
             .collect(),
     })
 }
@@ -207,6 +207,49 @@ impl Arena {
     }
 }
 
+// wasm-bindgen doesn't currently allow ADTs so this wraps around it
+#[wasm_bindgen]
+pub struct Series(SeriesInner);
+
+impl From<SeriesString> for Series {
+    fn from(series_string: SeriesString) -> Self {
+        Self(SeriesInner::String(series_string))
+    }
+}
+
+#[wasm_bindgen]
+impl Series {
+    pub fn log(&self) {
+        match &self.0 {
+            SeriesInner::F32(inner) => inner.log(),
+            SeriesInner::String(inner) => inner.log(),
+        }
+    }
+}
+
+pub enum SeriesInner {
+    F32(SeriesF32),
+    String(SeriesString),
+}
+
+#[wasm_bindgen]
+pub struct SeriesF32 {
+    inner: Array1<f32>,
+}
+
+#[wasm_bindgen]
+impl SeriesF32 {
+    pub fn from_js_array(js_array: Array) -> Self {
+        Self {
+            inner: js_array.iter().map(|s| s.as_f64().unwrap() as f32).collect(),
+        }
+    }
+
+    pub fn log(&self) {
+        web_sys::console::log_1(&format!("{:?}", &self.inner).into());
+    }
+}
+
 #[wasm_bindgen]
 pub struct SeriesString {
     inner: Vec<String>,
@@ -215,7 +258,7 @@ pub struct SeriesString {
 #[wasm_bindgen]
 impl SeriesString {
     pub fn from_js_array(js_array: Array) -> Self {
-        SeriesString {
+        Self {
             inner: js_array.iter().map(|s| s.as_string().unwrap()).collect(),
         }
     }
@@ -227,7 +270,7 @@ impl SeriesString {
 
 #[wasm_bindgen]
 pub struct Frame {
-    serieses: HashMap<String, SeriesString>,
+    serieses: HashMap<String, Series>,
 }
 
 #[wasm_bindgen]
@@ -240,7 +283,7 @@ impl Frame {
                     let entry = entry.dyn_into::<js_sys::Array>().unwrap();
                     (
                         entry.get(0).as_string().unwrap(),
-                        SeriesString::from_js_array(entry.get(1).try_into().unwrap()),
+                        SeriesString::from_js_array(entry.get(1).try_into().unwrap()).into(),
                     )
                 })
                 .collect(),
