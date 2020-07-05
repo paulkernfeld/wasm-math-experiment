@@ -2,8 +2,8 @@ This contains some experiments on what browser-first WebAssembly data frames mig
 
 This project is built with [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/). 
 
-- Current goal: visualize a data set
-- Current subgoal: add data viz library
+- Current goal: get a meaningful visualization of the NYC schools data
+- Current subgoal: show a histogram or scatter plot
 
 # TODO
 

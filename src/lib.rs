@@ -240,10 +240,24 @@ impl From<SeriesF32> for Series {
 
 #[wasm_bindgen]
 impl Series {
+    pub fn len(&self) -> usize {
+        match &self.0 {
+            SeriesInner::F32(inner) => inner.len(),
+            SeriesInner::String(inner) => inner.len(),
+        }
+    }
+
     pub fn log(&self) {
         match &self.0 {
             SeriesInner::F32(inner) => inner.log(),
             SeriesInner::String(inner) => inner.log(),
+        }
+    }
+
+    pub fn v(&self, i: usize) -> JsValue {
+        match &self.0 {
+            SeriesInner::F32(inner) => inner.v(i),
+            SeriesInner::String(inner) => inner.v(i),
         }
     }
 }
@@ -294,8 +308,16 @@ impl SeriesF32 {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
     pub fn log(&self) {
         web_sys::console::log_1(&format!("{:?}", &self.inner).into());
+    }
+
+    pub fn v(&self, i: usize) -> JsValue {
+        JsValue::from(self.inner[i] as f64)
     }
 }
 
@@ -313,8 +335,16 @@ impl SeriesString {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
     pub fn log(&self) {
         web_sys::console::log_1(&format!("{:?}", &self.inner).into());
+    }
+
+    pub fn v(&self, i: usize) -> JsValue {
+        JsValue::from(&self.inner[i])
     }
 }
 
@@ -340,11 +370,21 @@ impl Frame {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.serieses.values().next().unwrap().len()
+    }
+
     pub fn log(&self) {
         // TODO ideally these should be logged in order
         for (series_name, ref series) in self.serieses.iter() {
             web_sys::console::log_1(&series_name.into());
             series.log();
         }
+    }
+
+    pub fn s(&self, series_name: &str) -> Series {
+        // TODO don't clone
+        // TODO return an informative error if the series doesn't exist
+        self.serieses[series_name].clone()
     }
 }
