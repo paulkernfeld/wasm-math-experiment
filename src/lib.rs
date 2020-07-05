@@ -6,6 +6,7 @@ use ndarray::{array, Array1, Array2};
 use std::collections::HashMap;
 use std::convert::TryInto as _;
 use std::io::Cursor;
+use std::num::ParseFloatError;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen_futures::JsFuture;
@@ -48,11 +49,21 @@ pub async fn fetch_csv(fetch: Promise) -> Result<Frame, JsValue> {
             new_serieses[i].push(field.to_string());
         }
     }
+
+    let new_serieses: Vec<Series> = new_serieses
+        .into_iter()
+        .map(|series| {
+            let series_string = Series::from(SeriesString { inner: series });
+            // Try to convert each series into floating point. If it doesn't work, leave it as string.
+            series_string.try_as_f32().unwrap_or(series_string)
+        })
+        .collect();
+
     Ok(Frame {
         serieses: new_serieses
             .into_iter()
             .enumerate()
-            .map(|(i, series)| (format!("series_{}", i), Series::from(SeriesString { inner: series })))
+            .map(|(i, series)| (format!("series_{}", i), series))
             .collect(),
     })
 }
@@ -78,6 +89,7 @@ impl Arena {
     }
 }
 
+// TODO remove Arena, data analysts don't want to think about arenas
 #[wasm_bindgen]
 impl Arena {
     #[wasm_bindgen(constructor)]
@@ -207,13 +219,22 @@ impl Arena {
     }
 }
 
-// wasm-bindgen doesn't currently allow ADTs so this wraps around it
+// wasm-bindgen doesn't currently allow ADTs so this wraps around it. The way it's set up now, every
+// type of series will need to have the same methods. For example, the user could call median on a
+// could call median on a string series.
 #[wasm_bindgen]
+#[derive(Clone)]
 pub struct Series(SeriesInner);
 
 impl From<SeriesString> for Series {
     fn from(series_string: SeriesString) -> Self {
         Self(SeriesInner::String(series_string))
+    }
+}
+
+impl From<SeriesF32> for Series {
+    fn from(series_f32: SeriesF32) -> Self {
+        Self(SeriesInner::F32(series_f32))
     }
 }
 
@@ -227,12 +248,37 @@ impl Series {
     }
 }
 
+impl Series {
+    // TODO make this available form wasm
+    pub fn try_as_f32(&self) -> Result<Series, ParseFloatError> {
+        match &self.0 {
+            // TODO don't make a copy. Two possible ideas: use like Rc, or return like a Cow.
+            SeriesInner::F32(_inner) => Ok(self.clone()),
+            SeriesInner::String(inner) => {
+                // TODO implement Deref so I can call inner.len() instead of inner.inner.len()
+                let mut f32s = Array1::zeros(inner.inner.len());
+                for (i, string) in inner.inner.iter().enumerate() {
+                    f32s[i] = if string == "" {
+                        f32::NAN
+                    } else {
+                        string.parse::<f32>()?
+                    };
+                }
+                Ok(Series::from(SeriesF32 { inner: f32s }))
+            }
+        }
+    }
+}
+
+#[derive(Clone)]
 pub enum SeriesInner {
+    // TODO add more types of data in here
     F32(SeriesF32),
     String(SeriesString),
 }
 
 #[wasm_bindgen]
+#[derive(Clone)]
 pub struct SeriesF32 {
     inner: Array1<f32>,
 }
@@ -241,7 +287,10 @@ pub struct SeriesF32 {
 impl SeriesF32 {
     pub fn from_js_array(js_array: Array) -> Self {
         Self {
-            inner: js_array.iter().map(|s| s.as_f64().unwrap() as f32).collect(),
+            inner: js_array
+                .iter()
+                .map(|s| s.as_f64().unwrap() as f32)
+                .collect(),
         }
     }
 
@@ -251,6 +300,7 @@ impl SeriesF32 {
 }
 
 #[wasm_bindgen]
+#[derive(Clone)]
 pub struct SeriesString {
     inner: Vec<String>,
 }
